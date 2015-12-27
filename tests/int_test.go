@@ -1,31 +1,31 @@
 package tests
 
 import (
-  "net/http"
-  "testing"
-  "io/ioutil"
-  "log"
+	"io/ioutil"
+	"log"
+	"net/http"
+	"testing"
 )
 
 func TestListening(t *testing.T) {
 
-  for i:=0; i <= 4; i = i+1 {
-    req, err := http.NewRequest("GET", "http://localhost:8000/", nil)
-    if err != nil{
-      t.Errorf("Failed to create new request")
-    }
+	for i := 0; i <= 4; i = i + 1 {
+		req, err := http.NewRequest("GET", "http://localhost:8000/", nil)
+		if err != nil {
+			t.Errorf("Failed to create new request")
+		}
 
-    client := &http.Client{}
-    resp, err := client.Do(req)
-    if err != nil {
-      t.Errorf("client failed to issue request")
-    }
-    defer resp.Body.Close()
+		client := &http.Client{}
+		resp, err := client.Do(req)
+		if err != nil {
+			t.Errorf("client failed to issue request")
+		}
+		defer resp.Body.Close()
 
-    body, err := ioutil.ReadAll(resp.Body)
-    if err != nil {
-      t.Errorf("failed to read response body")
-    }
-    log.Println(string(body))
-  }
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			t.Errorf("failed to read response body")
+		}
+		log.Println(string(body))
+	}
 }
