@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestListening(t *testing.T) {
+func TestEndToEnd(t *testing.T) {
 
 	for i := 0; i <= 4; i = i + 1 {
 		req, err := http.NewRequest("GET", "http://localhost:8000/", nil)

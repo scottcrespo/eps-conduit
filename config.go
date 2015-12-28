@@ -11,7 +11,7 @@ import (
 )
 
 // Config Struct represents the load balancer's configuration
-type Config struct {
+type LoadBalancer struct {
 
 	// the backend services to balance
 	Backends []string `toml:"backends"`
@@ -39,99 +39,98 @@ type Config struct {
 }
 
 // singleton Config instance initially set to nil
-var config *Config = nil
+var lb *LoadBalancer = nil
 
 // GetConfig implements a singleton pattern to access the Config singleton
-func GetConfig(configFile string) *Config {
-	if config == nil {
-		config = new(Config)
-		config.init(configFile)
+func GetLoadBalancer(configFile string) *LoadBalancer {
+	if lb == nil {
+		lb = new(LoadBalancer)
+		lb.init(configFile)
 	}
-	return config
+	return lb
 }
 
 // init initializes a new Config instance by reading from the config file
 // It will unmarshal the toml file into the Config struct
-func (c *Config) init(configFile string) {
+func (lb *LoadBalancer) init(configFile string) {
 	_, err := os.Stat(configFile)
 
 	if err != nil {
 		log.Fatal("Config file not found: ", configFile)
 	}
-	if _, err := toml.DecodeFile(configFile, c); err != nil {
+	if _, err := toml.DecodeFile(configFile, lb); err != nil {
 		log.Fatal(err)
 	}
-	c.handleUserInput()
-	c.printConfigInfo()
-	c.makeProxies()
-	c.HostCount = len(c.Backends)
-	c.NextHost = 0
+	lb.handleUserInput()
+	lb.printConfigInfo()
+	lb.makeProxies()
+	lb.HostCount = len(lb.Backends)
+	lb.NextHost = 0
 }
 
 // handleUserInput checks command line input and overrides config file settings
 // Backends is parsed from a raw string to a slice of strings
 // TODO: Better input validation
-func (c *Config) handleUserInput() {
-
+func (lb *LoadBalancer) handleUserInput() {
 	if *backendStr != "" {
 		// Remove whitespace from backends
 		*backendStr = strings.Replace(*backendStr, " ", "", -1)
 		// Throwing backends into an array
-		c.Backends = strings.Split(*backendStr, ",")
+		lb.Backends = strings.Split(*backendStr, ",")
 	}
 	if *bind != "" {
-		c.Bind = *bind
+		lb.Bind = *bind
 	}
 	if *mode != "" {
-		c.Mode = *mode
+		lb.Mode = *mode
 	}
 	if *certFile != "" {
-		c.Certfile = *certFile
+		lb.Certfile = *certFile
 	}
 	if *keyFile != "" {
-		c.Keyfile = *keyFile
+		lb.Keyfile = *keyFile
 	}
 }
 
 // printConfigInfo prints to stderr host and port settings applied to current process
-func (c *Config) printConfigInfo() {
+func (lb *LoadBalancer) printConfigInfo() {
 	// tell the user what info the load balancer is using
-	for _, v := range c.Backends {
+	for _, v := range lb.Backends {
 		log.Println("using " + v + " as a backend")
 	}
-	log.Println("listening on port " + c.Bind)
+	log.Println("listening on port " + lb.Bind)
 }
 
 // makeProxies creates slice of ReverseProxies based on the Config's backend hosts
 // It returns a slice of httputil.ReverseProxy
-func (c *Config) makeProxies() {
+func (lb *LoadBalancer) makeProxies() {
 	// Create a proxy for each backend
-	c.Proxies = make([]*httputil.ReverseProxy, len(c.Backends))
-	for i := range c.Backends {
+	lb.Proxies = make([]*httputil.ReverseProxy, len(lb.Backends))
+	for i := range lb.Backends {
 		// host must be defined here, and not within the anonymous function.
 		// Otherwise, you'll run into scoping issues
-		host := c.Backends[i]
+		host := lb.Backends[i]
 		director := func(req *http.Request) {
 			req.URL.Scheme = "http"
 			req.URL.Host = host
 		}
-		c.Proxies[i] = &httputil.ReverseProxy{Director: director}
+		lb.Proxies[i] = &httputil.ReverseProxy{Director: director}
 	}
 }
 
-// Function for handling the http requests
-func (c *Config) handle(w http.ResponseWriter, r *http.Request) {
-	c.pickHost()
-	c.Proxies[c.NextHost].ServeHTTP(w, r)
+// handle forwards request by calling ServeHTTP() on the next Proxy
+func (lb *LoadBalancer) handle(w http.ResponseWriter, r *http.Request) {
+	lb.pickHost()
+	lb.Proxies[lb.NextHost].ServeHTTP(w, r)
 }
 
 // pickHost determines the next backend host to forward the request to - according to round-robin
 // It returns an integer, which represents the host's index in config.Backends
-func (c *Config) pickHost() {
-	nextHost := c.NextHost + 1
-	if nextHost >= c.HostCount {
-		c.NextHost = 0
+func (lb *LoadBalancer) pickHost() {
+	nextHost := lb.NextHost + 1
+	if nextHost >= lb.HostCount {
+		lb.NextHost = 0
 	} else {
-		c.NextHost = nextHost
+		lb.NextHost = nextHost
 	}
 }

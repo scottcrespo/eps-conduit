@@ -27,17 +27,16 @@ var certFile = flag.String("cert", "", "Path to rsa private key")
 var keyFile = flag.String("key", "", "Path to rsa public key")
 
 func main() {
-
 	flag.Parse()
-	config := GetConfig(*configFile)
-	// send requests to proxies via config.handle
-	http.HandleFunc("/", config.handle)
+	lb := GetLoadBalancer(*configFile)
+	// send requests to proxies via lb.handle
+	http.HandleFunc("/", lb.handle)
 
 	// Start the http(s) listener depending on user's selected mode
-	if config.Mode == "http" {
-		http.ListenAndServe(":"+config.Bind, nil)
-	} else if config.Mode == "https" {
-		http.ListenAndServeTLS(":"+config.Bind, config.Certfile, config.Keyfile, nil)
+	if lb.Mode == "http" {
+		http.ListenAndServe(":"+lb.Bind, nil)
+	} else if lb.Mode == "https" {
+		http.ListenAndServeTLS(":"+lb.Bind, lb.Certfile, lb.Keyfile, nil)
 	} else {
 		fmt.Fprintf(os.Stderr, "unknown mode or mode not set")
 		os.Exit(1)
