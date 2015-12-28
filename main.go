@@ -31,6 +31,7 @@ var keyFile = flag.String("key", "", "Path to rsa public key")
 func main() {
 	flag.Parse()
 
+	// Throw user input into a temporary LoadBalancer input
 	input := LB.LoadBalancer{
 		Bind: *bind,
 		Mode: *mode,
@@ -39,8 +40,10 @@ func main() {
 	}
 	input.BackendsFromStr(*backendStr)
 
+	// initialize the main LoadBalancer Instance using configFile and user input
 	lb := LB.GetLoadBalancer(*configFile, &input)
-	// send requests to proxies via lb.handle
+
+	// send requests to proxies via lb.Handle
 	http.HandleFunc("/", lb.Handle)
 
 	// Start the http(s) listener depending on user's selected mode
