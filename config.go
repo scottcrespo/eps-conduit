@@ -41,7 +41,7 @@ type LoadBalancer struct {
 // singleton Config instance initially set to nil
 var lb *LoadBalancer = nil
 
-// GetConfig implements a singleton pattern to access the Config singleton
+// GetLoadBalancer implements a singleton pattern to access the LoadBalancer singleton
 func GetLoadBalancer(configFile string) *LoadBalancer {
 	if lb == nil {
 		lb = new(LoadBalancer)
@@ -101,7 +101,7 @@ func (lb *LoadBalancer) printConfigInfo() {
 	log.Println("listening on port " + lb.Bind)
 }
 
-// makeProxies creates slice of ReverseProxies based on the Config's backend hosts
+// makeProxies creates slice of ReverseProxies based on the LoadBalancer backend hosts
 // It returns a slice of httputil.ReverseProxy
 func (lb *LoadBalancer) makeProxies() {
 	// Create a proxy for each backend
@@ -125,7 +125,7 @@ func (lb *LoadBalancer) handle(w http.ResponseWriter, r *http.Request) {
 }
 
 // pickHost determines the next backend host to forward the request to - according to round-robin
-// It returns an integer, which represents the host's index in config.Backends
+// It returns an integer, which represents the host's index in lb.Backends
 func (lb *LoadBalancer) pickHost() {
 	nextHost := lb.NextHost + 1
 	if nextHost >= lb.HostCount {
