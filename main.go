@@ -18,9 +18,7 @@ import (
 	LB "github.com/scottcrespo/eps-conduit/load-balancer"
 )
 
-// Handling user flags
-// User flags must be package globals they can be easily worked on by Config member functions
-// and avoid passing each command line option as a parameter.
+// User input flags. Non-empty values will override settings in configuration file
 var configFile = flag.String("config", "/etc/conduit.conf", "Path to config file. Default is /etc/conduit.conf")
 var backendStr = flag.String("b", "", "Host strings for the backend services (comma separated)")
 var bind = flag.String("bind", "", "The port the load balancer should listen to")
@@ -31,7 +29,8 @@ var keyFile = flag.String("key", "", "Path to rsa public key")
 func main() {
 	flag.Parse()
 
-	// Throw user input into a temporary LoadBalancer input
+	// Throw user input into a temporary LoadBalancer instance. Non-empty values will be copied
+	// into the main LoadBalancer instance and override settings from coniguration file
 	input := LB.LoadBalancer{
 		Bind: *bind,
 		Mode: *mode,
