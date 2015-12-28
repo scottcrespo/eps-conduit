@@ -20,16 +20,17 @@ func TestStandalone(t *testing.T) {
   defer ts.Close()
   //ts.URL = "http://localhost:8000"
 
-  resp, err := http.Get(ts.URL)
-  if err != nil {
-    t.Errorf("client failed to issue request")
-  }
-  defer resp.Body.Close()
+  for i := 0; i < 5; i++ {
+    resp, err := http.Get(ts.URL)
+    if err != nil {
+      t.Errorf("client failed to issue request")
+    }
+    defer resp.Body.Close()
 
-  body, err := ioutil.ReadAll(resp.Body)
-  if err != nil {
-    t.Errorf("failed to read response body")
+    body, err := ioutil.ReadAll(resp.Body)
+    if err != nil {
+      t.Errorf("failed to read response body")
+    }
+    log.Println(string(body))
   }
-  log.Println(string(body))
-
 }

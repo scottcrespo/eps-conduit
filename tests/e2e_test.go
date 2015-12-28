@@ -9,7 +9,7 @@ import (
 
 func TestEndToEnd(t *testing.T) {
 
-	for i := 0; i <= 4; i = i + 1 {
+	for i := 0; i <= 4; i++ {
 		req, err := http.NewRequest("GET", "http://localhost:8000/", nil)
 		if err != nil {
 			t.Errorf("Failed to create new request")
