@@ -14,6 +14,8 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+
+	LB "github.com/scottcrespo/eps-conduit/load-balancer"
 )
 
 // Handling user flags
@@ -28,9 +30,18 @@ var keyFile = flag.String("key", "", "Path to rsa public key")
 
 func main() {
 	flag.Parse()
-	lb := GetLoadBalancer(*configFile)
+
+	input := LB.LoadBalancer{
+		Bind: *bind,
+		Mode: *mode,
+		Certfile: *certFile,
+		Keyfile: *keyFile,
+	}
+	input.BackendsFromStr(*backendStr)
+
+	lb := LB.GetLoadBalancer(*configFile, &input)
 	// send requests to proxies via lb.handle
-	http.HandleFunc("/", lb.handle)
+	http.HandleFunc("/", lb.Handle)
 
 	// Start the http(s) listener depending on user's selected mode
 	if lb.Mode == "http" {

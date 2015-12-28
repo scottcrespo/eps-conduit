@@ -1,4 +1,4 @@
-package main
+package loadbalancer
 
 import (
 	"log"
@@ -42,17 +42,17 @@ type LoadBalancer struct {
 var lb *LoadBalancer = nil
 
 // GetLoadBalancer implements a singleton pattern to access the LoadBalancer singleton
-func GetLoadBalancer(configFile string) *LoadBalancer {
+func GetLoadBalancer(configFile string, input *LoadBalancer) *LoadBalancer {
 	if lb == nil {
 		lb = new(LoadBalancer)
-		lb.init(configFile)
+		lb.init(configFile, input)
 	}
 	return lb
 }
 
 // init initializes a new Config instance by reading from the config file
 // It will unmarshal the toml file into the Config struct
-func (lb *LoadBalancer) init(configFile string) {
+func (lb *LoadBalancer) init(configFile string, input *LoadBalancer) {
 	_, err := os.Stat(configFile)
 
 	if err != nil {
@@ -61,7 +61,7 @@ func (lb *LoadBalancer) init(configFile string) {
 	if _, err := toml.DecodeFile(configFile, lb); err != nil {
 		log.Fatal(err)
 	}
-	lb.handleUserInput()
+	lb.handleUserInput(input)
 	lb.printConfigInfo()
 	lb.makeProxies()
 	lb.HostCount = len(lb.Backends)
@@ -71,24 +71,32 @@ func (lb *LoadBalancer) init(configFile string) {
 // handleUserInput checks command line input and overrides config file settings
 // Backends is parsed from a raw string to a slice of strings
 // TODO: Better input validation
-func (lb *LoadBalancer) handleUserInput() {
-	if *backendStr != "" {
+func (lb *LoadBalancer) handleUserInput(input *LoadBalancer) {
+	if len(input.Backends) > 0 {
+		lb.Backends = input.Backends
+	}
+	if input.Bind != "" {
+		lb.Bind = input.Bind
+	}
+	if input.Mode != "" {
+		lb.Mode = input.Mode
+	}
+	if input.Certfile != "" {
+		lb.Certfile = input.Certfile
+	}
+	if input.Keyfile != "" {
+		lb.Keyfile = input.Keyfile
+	}
+}
+
+// BackendsFromStr creates a slice of backends from a user-inputted string, and copies the result
+// into the LoadBalancer singleton instance.
+func (lb *LoadBalancer) BackendsFromStr(backendStr string) {
+	if backendStr != "" {
 		// Remove whitespace from backends
-		*backendStr = strings.Replace(*backendStr, " ", "", -1)
+		backendStr = strings.Replace(backendStr, " ", "", -1)
 		// Throwing backends into an array
-		lb.Backends = strings.Split(*backendStr, ",")
-	}
-	if *bind != "" {
-		lb.Bind = *bind
-	}
-	if *mode != "" {
-		lb.Mode = *mode
-	}
-	if *certFile != "" {
-		lb.Certfile = *certFile
-	}
-	if *keyFile != "" {
-		lb.Keyfile = *keyFile
+		lb.Backends = strings.Split(backendStr, ",")
 	}
 }
 
@@ -119,7 +127,7 @@ func (lb *LoadBalancer) makeProxies() {
 }
 
 // handle forwards request by calling ServeHTTP() on the next Proxy
-func (lb *LoadBalancer) handle(w http.ResponseWriter, r *http.Request) {
+func (lb *LoadBalancer) Handle(w http.ResponseWriter, r *http.Request) {
 	lb.pickHost()
 	lb.Proxies[lb.NextHost].ServeHTTP(w, r)
 }
